@@ -12,7 +12,12 @@
 namespace modern_framework
 {
 	template <class T>
-	void serialize_arg(std::stringstream& buffer, T& arg);
+	void serialize_arg(std::stringstream& buffer, T& arg)
+	{
+		uint32_t len=static_cast<uint32_t>(sizeof(T));
+		buffer.write(reinterpret_cast<const char*>(&len),sizeof(uint32_t));
+		buffer.write(reinterpret_cast<const char*>(&arg),len);
+	}
 
 	template<class T>
 	class type_select;
@@ -158,7 +163,7 @@ namespace modern_framework
 		buffer.write(reinterpret_cast<const char*>(&len),sizeof(uint32_t));
 		buffer.write(arg.c_str(),len);
 	}
-
+	
 	template <>
 	void serialize_arg(std::stringstream& buffer, std::wstring& arg)
 	{
@@ -200,16 +205,24 @@ namespace modern_framework
 	{
 	public:
 		virtual void send(const char* buffer,size_t length)=0;
+		virtual ~interface_remote_function(){}
 	};
 
 	class remote_function_base:public interface_remote_function
 	{
-	public:
-		interface_remote_function* sender;
+	protected:
+		interface_remote_function* _sender;
 		int32_t _function_id;
+	public:
+		
+		void config(interface_remote_function* sender,int32_t function_id)
+		{
+			_sender=sender;
+			_function_id=function_id;
+		}
 		virtual void send(const char* buffer,size_t length)override
 		{
-			sender->send(buffer,length);
+			_sender->send(buffer,length);
 		}
 	};
 
@@ -219,7 +232,6 @@ namespace modern_framework
 	template <class R, class... args >
 	class remote_function<R(args...)> :public remote_function_base
 	{
-
 	public:
 		R operator()(args... arg)
 		{
@@ -236,7 +248,6 @@ namespace modern_framework
 	template <class... args>
 	class remote_function<void(args...)>:public remote_function_base
 	{
-		
 	public:
 		void operator()(args... arg)
 		{

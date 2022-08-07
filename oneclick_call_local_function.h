@@ -54,7 +54,7 @@ namespace modern_framework
         }
     };
 
-    #define WRAP4REMOTE_SLOT(member_function) from_member_function<decltype(member_function)>::exec<member_function>
+    #define RS_WRAP(member_function) from_member_function<decltype(member_function)>::exec<member_function>
 }
 
 

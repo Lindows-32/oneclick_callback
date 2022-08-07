@@ -9,7 +9,14 @@
 namespace modern_framework
 {
 	template<class T>
-	void deserialize_arg(char*& buffer,T& object);
+	void deserialize_arg(char*& buffer,T& object)
+	{
+		std::cout<<typeid(T).name()<<std::endl;
+		uint32_t length = *reinterpret_cast<uint32_t*>(buffer);
+		buffer+=sizeof(uint32_t);
+		object=*reinterpret_cast<T*>(buffer);
+		buffer+=length;
+	}
 
 	template<size_t index, class param_T, class T>
 	class extractor_type_select;

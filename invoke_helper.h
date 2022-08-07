@@ -10,43 +10,6 @@ namespace modern_framework
 		template<class T>
 		using F = typename _modify_rule<T>::type;
 
-		template<class _member_function, class _class_type, class _return_value_type, class... pargs>
-		class parameter_pack_expansion;
-
-		template<class _member_function, class _class_type, class _return_value_type, class T, class... pargs>
-		class parameter_pack_expansion<_member_function, _class_type, _return_value_type, T, pargs...>
-		{
-		public:
-			using head_type = T;
-			using next = parameter_pack_expansion<_member_function, _class_type, _return_value_type, pargs...>;
-
-			template<class member_function, class class_type, class return_value_type, class... cargs>
-			class construct_new_parameter_pack
-			{
-			public:
-				static constexpr size_t current_index = sizeof...(cargs);
-				using result_type = typename next::template construct_new_parameter_pack<member_function, class_type, return_value_type, cargs..., F<head_type>>;
-				inline static void exec(member_function memfun_ptr, class_type this_ptr, return_value_type* res_ptr, _data_source_type& data_source, cargs... args)
-				{
-					typename _param_extractor_type<current_index, _data_source_type, F<head_type>>::type data(data_source);
-					result_type::exec(memfun_ptr, this_ptr, res_ptr, data_source, args..., data);
-				}
-			};
-			template<class member_function, class class_type, class return_value_type>
-			class construct_new_parameter_pack<member_function, class_type, return_value_type>
-			{
-			public:
-				static constexpr size_t current_index = 0;
-				using result_type = typename next::template construct_new_parameter_pack<member_function, class_type, return_value_type, F<head_type>>;
-				inline static void exec(member_function memfun_ptr, class_type this_ptr, return_value_type* res_ptr, _data_source_type& data_source)
-				{
-					typename _param_extractor_type<current_index, _data_source_type, F<head_type>>::type data(data_source);
-					result_type::exec(memfun_ptr, this_ptr, res_ptr, data_source, data);
-				}
-			};
-
-			using result_type = construct_new_parameter_pack<_member_function, _class_type, _return_value_type>;
-		};
 
 		template<class T>
 		class call_funptr;
@@ -86,6 +49,46 @@ namespace modern_framework
 			}
 		};
 
+		template<class _member_function, class _class_type, class _return_value_type, class... pargs>
+		class parameter_pack_expansion;
+
+		template<class _member_function, class _class_type, class _return_value_type, class T, class... pargs>
+		class parameter_pack_expansion<_member_function, _class_type, _return_value_type, T, pargs...>
+		{
+		public:
+			using head_type = T;
+			using next = parameter_pack_expansion<_member_function, _class_type, _return_value_type, pargs...>;
+
+			template<class member_function, class class_type, class return_value_type, class... cargs>
+			class construct_new_parameter_pack
+			{
+			public:
+				static constexpr size_t current_index = sizeof...(cargs);
+				using result_type = typename next::template construct_new_parameter_pack<member_function, class_type, return_value_type, cargs..., F<head_type>>;
+				inline static void exec(member_function memfun_ptr, class_type this_ptr, return_value_type* res_ptr, _data_source_type& data_source, cargs... args)
+				{
+					typename _param_extractor_type<current_index, _data_source_type, F<head_type>>::type data(data_source);
+					result_type::exec(memfun_ptr, this_ptr, res_ptr, data_source, args..., data);
+				}
+			};
+			template<class member_function, class class_type, class return_value_type>
+			class construct_new_parameter_pack<member_function, class_type, return_value_type>
+			{
+			public:
+				static constexpr size_t current_index = 0;
+				using result_type = typename next::template construct_new_parameter_pack<member_function, class_type, return_value_type, F<head_type>>;
+				inline static void exec(member_function memfun_ptr, class_type this_ptr, return_value_type* res_ptr, _data_source_type& data_source)
+				{
+					typename _param_extractor_type<current_index, _data_source_type, F<head_type>>::type data(data_source);
+					result_type::exec(memfun_ptr, this_ptr, res_ptr, data_source, data);
+				}
+			};
+
+			using result_type = construct_new_parameter_pack<_member_function, _class_type, _return_value_type>;
+		};
+
+		
+
 		template<class _member_function, class _class_type, class _return_value_type, class T>
 		class parameter_pack_expansion<_member_function, _class_type, _return_value_type, T>
 		{
@@ -103,6 +106,7 @@ namespace modern_framework
 					call_funptr<member_function>::template exec<member_function, class_type, cargs...>(memfun_ptr, this_ptr, res_ptr, args..., data);
 				}
 			};
+			using result_type = construct_new_parameter_pack<_member_function,_class_type,_return_value_type>;
 		};
 
 		template<class _member_function, class _class_type, class T>
@@ -113,7 +117,6 @@ namespace modern_framework
 			template<class member_function, class class_type, class return_value_type, class... cargs>
 			class construct_new_parameter_pack
 			{
-
 			public:
 				static constexpr size_t current_index = sizeof...(cargs);
 				inline static void exec(member_function memfun_ptr, class_type this_ptr, return_value_type* res_ptr, _data_source_type& data_source, cargs... args)
@@ -122,6 +125,7 @@ namespace modern_framework
 					call_funptr<member_function>::template exec<member_function, class_type, cargs...>(memfun_ptr, this_ptr, res_ptr,args..., data);
 				}
 			};
+			using result_type = construct_new_parameter_pack<_member_function,_class_type,void>;
 		};
 
 		template<class member_function, class class_type, class return_value_type>
