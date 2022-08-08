@@ -8,7 +8,7 @@
 #include "remote_function.h"
 #include "invoke_byte_stream.h"
 #include "oneclick_call_local_function.h"
-#include "simple_t.h"
+#include "cs_common_type.h"
 using namespace modern_framework;
 using std::vector;
 using std::string;
@@ -65,21 +65,26 @@ class session:public interface_remote_function
     {
         if(e)
             return;
-        int x=rand()%3;
-        switch(x)
+        static int x=1;
+        switch(x%3)
         {
         case 0:
-            say_hello();
+            say_hello({114.514,"Homo"});
             break;
         case 1:
             {
-                vector<string> a={"Jerry","Mickey","Shuke"};
+                vector<complex> a;
+                a.reserve(3);
+                a.emplace_back("Jerry",1);
+                a.emplace_back("Mickey",2);
+                a.emplace_back("Shuke",3);
                 give_mouse(3,a);
                 break;
             }
         default:
             tell_name2cat(string(rand()%2?"Tom":"Black"));
         }
+        x++;
         _timer.expires_after(std::chrono::seconds(1));
         _timer.async_wait(std::bind(&session::on_timer,this,_1));
         
@@ -89,8 +94,8 @@ SLOTS void server_say_hello(string* name)
 		cout<<*name<<endl;
 	}
 SIGNALS
-	remote_function<void()> say_hello;
-    remote_function<void(int32_t,vector<string>&)>  give_mouse;
+	remote_function<void(simple)> say_hello;
+    remote_function<void(int32_t,vector<complex>&)>  give_mouse;
     remote_function<void(string&&)> tell_name2cat;
 public:
 	session(boost::asio::io_context& ioc,tcp::socket&& sock):_sock(std::move(sock)),_timer(ioc)

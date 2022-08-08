@@ -13,17 +13,6 @@ namespace modern_framework
     {
     public:
         template<R(C::*funptr)(args...)>
-        static R exec(void* object_ptr,char* buffer)
-        {
-            return invoke(funptr,reinterpret_cast<C*>(object_ptr),buffer);
-        }
-    };
-
-    template<class C,class... args>
-    class from_member_function<void(C::*)(args...)>
-    {
-    public:
-        template<void(C::*funptr)(args...)>
         static void exec(void* object_ptr,char* buffer)
         {
             invoke(funptr,reinterpret_cast<C*>(object_ptr),buffer);

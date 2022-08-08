@@ -11,44 +11,66 @@ namespace modern_framework
 	template<class T>
 	void deserialize_arg(char*& buffer,T& object)
 	{
-		std::cout<<typeid(T).name()<<std::endl;
 		uint32_t length = *reinterpret_cast<uint32_t*>(buffer);
 		buffer+=sizeof(uint32_t);
 		object=*reinterpret_cast<T*>(buffer);
 		buffer+=length;
 	}
 
-	template<size_t index, class param_T, class T>
-	class extractor_type_select;
-
 	template<size_t index, class T>
 	class extractor_type_select<index, char*, T&>
 	{
 		class for_basic_type
 		{
-			T value;
+			char value[sizeof(long double)];
 		public:
 			inline for_basic_type(char*& data_source)
 			{
-				value = *reinterpret_cast<T*>(data_source);
+				*reinterpret_cast<T*>(value) = *reinterpret_cast<T*>(data_source);
+				data_source += sizeof(T);
+			}
+			inline for_basic_type(char*& data_source,T& prealloced)
+			{
+				prealloced=*reinterpret_cast<T*>(data_source);
 				data_source += sizeof(T);
 			}
 			inline operator T& ()
 			{
-				return value;
+				return *reinterpret_cast<T*>(value);
+			}
+			inline operator T* ()
+			{
+				return reinterpret_cast<T*>(value);
 			}
 		};
 		class for_class_type
 		{
-			T value;
+			uint8_t space[sizeof(T)];
+			bool need2free;
 		public:
 			inline for_class_type(char*& data_source)
 			{
-				deserialize_arg(data_source,value);
+				new(space)T;
+				need2free=true;
+				deserialize_arg(data_source,*reinterpret_cast<T*>(space));
+			}
+			inline for_class_type(char*& data_source,T& prealloced)
+			{
+				need2free=false;
+				deserialize_arg(data_source,prealloced);
 			}
 			inline operator T& ()
 			{
-				return value;
+				return *reinterpret_cast<T*>(space);
+			}
+			inline operator T* ()
+			{
+				return reinterpret_cast<T*>(space);
+			}
+			~for_class_type()
+			{
+				if(need2free)
+					reinterpret_cast<T*>(space)->~T();
 			}
 		};
 	public:
@@ -65,49 +87,16 @@ namespace modern_framework
 	template<size_t index, class T>
 	class extractor_type_select<index, char*, T*>
 	{
-		class for_basic_type
-		{
-			T value;
-		public:
-			inline for_basic_type(char*& data_source)
-			{
-				value = *reinterpret_cast<T*>(data_source);
-				data_source += sizeof(T);
-			}
-			inline operator T* ()
-			{
-				return &value;
-			}
-		};
-		class for_class_type
-		{
-			T value;
-		public:
-			inline for_class_type(char*& data_source)
-			{
-				deserialize_arg(data_source,value);
-			}
-			inline operator T* ()
-			{
-				return &value;
-			}
-		};
 	public:
-		using type= typename IF<type<T>::is_basic_type::result, for_basic_type, for_class_type>::THEN;
+		using type= typename extractor_type_select<index, char*, T&>::type;
 	};
 
 	template<size_t index, class T>
-	void vector_construct_common(std::vector<T>& value, char*& data_source)
+	class extractor_type_select<index, char*,const T*>
 	{
-		uint32_t length = *reinterpret_cast<uint32_t*>(data_source);
-		value.resize(length);
-		data_source += sizeof(length);
-		for (uint32_t i = 0; i < length; i++)
-		{
-			typename extractor_type_select<index, char*, T&>::type data(data_source);
-			value[i] = std::move(data);
-		}
-	}
+	public:
+		using type= typename extractor_type_select<index, char*, T&>::type;
+	};
 	
 
 	template<size_t index, class T>
@@ -115,15 +104,42 @@ namespace modern_framework
 	{
 		class for_class_type
 		{
-			std::vector<T> value;
+			uint8_t space[sizeof(std::vector<T>)];
+			bool need2free;
+			void vector_construct_common(char*& data_source,std::vector<T>& value)
+			{
+				uint32_t length = *reinterpret_cast<uint32_t*>(data_source);
+				value.resize(length);
+				data_source += sizeof(length);
+				for (uint32_t i = 0; i < length; i++)
+				{
+					typename extractor_type_select<index, char*, T&>::type data(data_source,value[i]);
+				}
+			}
 		public:
 			inline for_class_type(char*& data_source)
 			{
-				vector_construct_common<index,T>(value, data_source);
+				new(space)std::vector<T>;
+				need2free=true;
+				vector_construct_common(data_source,*reinterpret_cast<std::vector<T>*>(space));
+			}
+			inline for_class_type(char*& data_source,std::vector<T>& prealloced)
+			{
+				need2free=false;
+				vector_construct_common(data_source,prealloced);
 			}
 			inline operator std::vector<T>& ()
 			{
-				return value;
+				return *reinterpret_cast<std::vector<T>*>(space);
+			}
+			inline operator std::vector<T>* ()
+			{
+				return reinterpret_cast<std::vector<T>*>(space);
+			}
+			~for_class_type()
+			{
+				if(need2free)
+					reinterpret_cast<std::vector<T>*>(space)->~vector();
 			}
 		};
 	public:
@@ -131,61 +147,72 @@ namespace modern_framework
 	};
 
 	template<size_t index, class T>
+	class extractor_type_select<index, char*,const std::vector<T>&>
+	{
+	public:
+		using type = typename extractor_type_select<index, char*, std::vector<T>&>::type;
+	};
+
+	template<size_t index, class T>
 	class extractor_type_select<index, char*, std::vector<T>*>
 	{
-		class for_class_type
-		{
-			std::vector<T> value;
-		public:
-			inline for_class_type(char*& data_source)
-			{
-				vector_construct_common<index, T>(value, data_source);
-			}
-			inline operator std::vector<T>* ()
-			{
-				return &value;
-			}
-		};
 	public:
-		using type = for_class_type;
+		using type = typename extractor_type_select<index, char*, std::vector<T>&>::type;
 	};
 
 	template<size_t index, class T>
 	class extractor_type_select<index, char*,const std::vector<T>*>
 	{
 	public:
-		using type = typename extractor_type_select<index, char*, std::vector<T>*>::type;
+		using type = typename extractor_type_select<index, char*, std::vector<T>&>::type;
 	};
 
-	template<size_t index, class T>
-	void list_construct_common(std::list<T>& value, char*& data_source)
-	{
-		uint32_t length = *reinterpret_cast<uint32_t*>(data_source);
-		value.resize(length);
-		data_source += sizeof(length);
-		typename std::list<T>::iterator it = value.begin();
-		for (uint32_t i = 0; i < length; i++)
-		{
-			typename extractor_type_select<index, char*, T&>::type data(data_source);
-			(*it) = std::move(data);
-			it++;
-		}
-	}
+	
 
 	template<size_t index, class T>
 	class extractor_type_select<index, char*, std::list<T>&>
 	{
 		class for_class_type
 		{
-			std::list<T> value;
+			uint8_t space[sizeof(std::list<T>)];
+			bool need2free;
+
+			void list_construct_common(char*& data_source,std::list<T>& value)
+			{
+				uint32_t length = *reinterpret_cast<uint32_t*>(data_source);
+				value.resize(length);
+				data_source += sizeof(length);
+				typename std::list<T>::iterator it = value.begin();
+				for (uint32_t i = 0; i < length; i++)
+				{
+					typename extractor_type_select<index, char*, T&>::type data(data_source,*it);
+					it++;
+				}
+			}
 		public:
 			inline for_class_type(char*& data_source)
 			{
-				list_construct_common<index,T>(value, data_source);
+				new(space)std::list<T>;
+				need2free=true;
+				list_construct_common(data_source,*reinterpret_cast<std::list<T>*>(space));
+			}
+			inline for_class_type(char*& data_source,std::list<T>& prealloced)
+			{
+				need2free=false;
+				list_construct_common(data_source,prealloced);
 			}
 			inline operator std::list<T>& ()
 			{
-				return value;
+				return *reinterpret_cast<std::list<T>*>(space);
+			}
+			inline operator std::list<T>* ()
+			{
+				return reinterpret_cast<std::list<T>*>(space);
+			}
+			~for_class_type()
+			{
+				if(need2free)
+					reinterpret_cast<std::list<T>*>(space)->~list();
 			}
 		};
 	public:
@@ -195,28 +222,15 @@ namespace modern_framework
 	template<size_t index, class T>
 	class extractor_type_select<index, char*, std::list<T>*>
 	{
-		class for_class_type
-		{
-			std::list<T> value;
-		public:
-			inline for_class_type(char*& data_source)
-			{
-				list_construct_common<index, T>(value, data_source);
-			}
-			inline operator std::list<T>* ()
-			{
-				return &value;
-			}
-		};
 	public:
-		using type = for_class_type;
+		using type = typename extractor_type_select<index, char*, std::list<T>&>::type;
 	};
 
 	template<size_t index, class T>
 	class extractor_type_select<index, char*,const std::list<T>*>
 	{
 	public:
-		using type = typename extractor_type_select<index, char*, std::list<T>*>::type;
+		using type = typename extractor_type_select<index, char*, std::list<T>&>::type;
 	};
 
 	template<size_t index, class T>
@@ -224,12 +238,6 @@ namespace modern_framework
 	{
 	public:
 		using type = typename extractor_type_select<index, char*, std::list<T>&>::type;
-	};
-	template<size_t index, class T>
-	class extractor_type_select<index, char*,const T*>
-	{
-	public:
-		using type= typename extractor_type_select<index, char*, T*>::type;
 	};
 
 	template<size_t index>
@@ -246,6 +254,13 @@ namespace modern_framework
 				value = data_source;
 				data_source += length;
 			}
+			inline for_basic_type(char*& data_source,const char*& prealloced)
+			{
+				uint32_t length=*reinterpret_cast<uint32_t*>(data_source);
+				data_source+=sizeof(uint32_t);
+				prealloced = data_source;
+				data_source += length;
+			}
 			inline operator const char* ()
 			{
 				return value;
@@ -253,6 +268,13 @@ namespace modern_framework
 		};
 	public:
 		using type= for_basic_type;
+	};
+
+	template<size_t index>
+	class extractor_type_select<index, char*, const char*&>
+	{
+	public:
+		using type= typename  extractor_type_select<index, char*, const char*>::type;
 	};
 
 	template<size_t index>
