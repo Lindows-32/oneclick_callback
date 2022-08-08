@@ -38,7 +38,7 @@ class session:public interface_remote_function
 	}
 	class cat
 	{
-		int _count;
+		int _count=0;
 		string _name;
 	public:
 		int eat(int32_t count,vector<complex>& mice)
