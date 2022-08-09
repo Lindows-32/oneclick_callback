@@ -1,17 +1,18 @@
 #include <iostream>
+#include <map>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/asio/steady_timer.hpp>
-#include "remote_function.h"
-#include "invoke_byte_stream.h"
-#include "oneclick_call_local_function.h"
+#include "modern_remote_signal.h"
+#include "modern_remote_slots.h"
 #include "cs_common_type.h"
 using namespace modern_framework;
 using std::vector;
 using std::string;
+using std::map;
 using std::cout;
 using std::endl;
 using std::enable_shared_from_this;
@@ -93,14 +94,22 @@ SLOTS void server_say_hello(string* name)
 	{
 		cout<<*name<<endl;
 	}
+    void test_map(map<int,string>& arg)
+    {
+        for(auto it=arg.begin();it!=arg.end();it++)
+        {
+            cout<<'{'<<it->first<<':'<<it->second<<'}'<<endl;
+        }
+    }
 SIGNALS
-	remote_function<void(simple)> say_hello;
-    remote_function<void(int32_t,vector<complex>&)>  give_mouse;
-    remote_function<void(string&&)> tell_name2cat;
+	remote_signal<void(simple)> say_hello;
+    remote_signal<void(int32_t,vector<complex>&)>  give_mouse;
+    remote_signal<void(string&&)> tell_name2cat;
 public:
 	session(boost::asio::io_context& ioc,tcp::socket&& sock):_sock(std::move(sock)),_timer(ioc)
 	{
 		_slots.bind(1,RS_WRAP(&session::server_say_hello),this);
+        _slots.bind(2,RS_WRAP(&session::test_map),this);
 		say_hello.config(this,0);
         tell_name2cat.config(this,1);
         give_mouse.config(this,2);        

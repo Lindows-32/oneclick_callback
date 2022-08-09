@@ -6,25 +6,19 @@ namespace modern_framework
 
 	struct can
 	{
-		enum
-		{
-			value = true
-		};
+		static constexpr bool value = true;
 	};
 	struct can_t
 	{
-		enum
-		{
-			value = false
-		};
+		static constexpr bool value = false;
 	};
 	template <class T1,class T2>
-	struct is_same_v
+	struct is_same
 	{
 		static constexpr bool result=false;
 	};
 	template <class T>
-	struct is_same_v<T,T>
+	struct is_same<T,T>
 	{
 		static constexpr bool result=true;
 	};
@@ -38,17 +32,11 @@ namespace modern_framework
 		{
 			struct is_complex
 			{
-				enum
-				{
-					value = true
-				};
+				static constexpr bool result=true;
 			};
 			struct is_simple
 			{
-				enum
-				{
-					value = false
-				};
+				static constexpr bool result=false;
 			};
 			template <class C>
 			static is_complex check(int C::*);
@@ -59,7 +47,7 @@ namespace modern_framework
 		public:
 			static constexpr bool result = decltype(check<T>(nullptr))::value;
 		};
-#define IS(type) is_same_v<T,type>::result
+#define IS(type) is_same<T,type>::result
 		class is_basic_type
 		{
 		public:

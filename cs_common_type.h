@@ -11,7 +11,7 @@ struct simple
 };
 
 
-//包含指针的复杂类型,需要自己提供序列化和反序列化的偏特化
+//包含指针的复杂类型,需要自己提供序列化和反序列化的特化
 class complex
 {
 public:
@@ -51,7 +51,7 @@ public:
 };
 
 
-namespace modern_framework//加入偏特化
+namespace modern_framework//加入特化
 {
 	template <>
 	void serialize_arg(std::stringstream &buffer, complex& arg)//序列化

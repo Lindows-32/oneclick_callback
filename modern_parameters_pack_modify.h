@@ -1,5 +1,6 @@
-#ifndef PARAMETER_PACK_MODIFY_H
-#define PARAMETER_PACK_MODIFY_H
+#ifndef MODERN_PPARAMETER_PACK_MODIFY_H
+#define MODERN_PPARAMETER_PACK_MODIFY_H
+#include <cstdint>
 namespace modern_framework
 {
     template< template<class..._args> class template_type ,class specialized_type, class... args>

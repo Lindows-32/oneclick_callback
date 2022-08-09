@@ -1,6 +1,6 @@
-#ifndef INVOKE_HELPER
-#define INVOKE_HELPER
-
+#ifndef MODERN_INVOKE_HELPER_H
+#define MODERN_INVOKE_HELPER_H
+#include <cstdint>
 namespace modern_framework
 {
 	template<size_t index, class param_T, class T>

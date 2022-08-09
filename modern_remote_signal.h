@@ -1,12 +1,13 @@
-#ifndef REMOTE_FUNCTION_H
-#define REMOTE_FUNCTION_H
-#include "modify_rule.h"
-#include "parameters_pack_modify.h"
+#ifndef MODERN_REMOTE_SIGNAL_H
+#define MODERN_REMOTE_SIGNAL_H
+#include "modern_modify_rule.h"
+#include "modern_parameters_pack_modify.h"
 #include "modern_class_analysis.h"
 #include <string.h>
 #include <string>
 #include <vector>
 #include <list>
+#include <map>
 #include <sstream>
 
 namespace modern_framework
@@ -156,6 +157,45 @@ namespace modern_framework
 		using type= for_class_type;
 	};
 
+	template<class T>
+	class type_select<std::list<T>&>
+	{
+		class for_class_type
+		{
+		public:
+			static void _serialize_arg(std::stringstream& buffer,const std::list<T>& arg)
+			{
+				uint32_t len=static_cast<uint32_t>(arg.size());
+				buffer.write(reinterpret_cast<const char*>(&len),sizeof(uint32_t));
+				for(auto& r:arg)
+					type_select<T&>::type::_serialize_arg(buffer, r);
+			}
+		};
+	public:
+		using type= for_class_type;
+	};
+
+	template<class _key,class _value>
+	class type_select<std::map<_key,_value>&>
+	{
+		class for_class_type
+		{
+		public:
+			static void _serialize_arg(std::stringstream& buffer,const std::map<_key,_value>& arg)
+			{
+				uint32_t len=static_cast<uint32_t>(arg.size());
+				buffer.write(reinterpret_cast<const char*>(&len),sizeof(uint32_t));
+				for(auto& r:arg)
+				{
+					type_select<_key&>::type::_serialize_arg(buffer, r.first);
+					type_select<_value&>::type::_serialize_arg(buffer, r.second);
+				}
+			}
+		};
+	public:
+		using type= for_class_type;
+	};
+
 	template <>
 	void serialize_arg(std::stringstream& buffer, std::string& arg)
 	{
@@ -227,10 +267,10 @@ namespace modern_framework
 	};
 
 	template <class T>
-	class remote_function;
+	class remote_signal;
 
 	template <class R, class... args >
-	class remote_function<R(args...)> :public remote_function_base
+	class remote_signal<R(args...)> :public remote_function_base
 	{
 	public:
 		R operator()(args... arg)
@@ -246,7 +286,7 @@ namespace modern_framework
 	};
 
 	template <class... args>
-	class remote_function<void(args...)>:public remote_function_base
+	class remote_signal<void(args...)>:public remote_function_base
 	{
 	public:
 		void operator()(args... arg)

@@ -1,7 +1,6 @@
-#ifndef REMOTE_SLOT_H
-#define REMOTE_SLOT_H
-#include <map>
-#include "invoke_byte_stream.h"
+#ifndef MODERN_REMOTE_SLOTS_H
+#define MODERN_REMOTE_SLOTS_H
+#include "modern_invoke_byte_stream.h"
 namespace modern_framework
 {
     using warped_function=void(*)(void*,char*);

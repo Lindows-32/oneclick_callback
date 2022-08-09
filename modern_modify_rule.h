@@ -1,5 +1,5 @@
-#ifndef MODIFY_RULE_H
-#define MODIFY_RULE_H
+#ifndef MODERN_MODIFY_RULE_H
+#define MODERN_MODIFY_RULE_H
 
 namespace modern_framework
 {
