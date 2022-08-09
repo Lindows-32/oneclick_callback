@@ -1,12 +1,11 @@
 #include <iostream>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include "remote_function.h"
-#include "invoke_byte_stream.h"
-#include "oneclick_call_local_function.h"
+#include "modern_remote_signal.h"
+#include "modern_remote_slots.h"
 #include "cs_common_type.h"
 using namespace modern_framework;
-
+using std::map;
 using std::vector;
 using std::string;
 using std::cout;
@@ -41,6 +40,7 @@ class session:public interface_remote_function
 		int _count=0;
 		string _name;
 	public:
+		session* ss;
 		int eat(int32_t count,vector<complex>& mice)
 		{
 			_count+=count;
@@ -53,6 +53,11 @@ class session:public interface_remote_function
 		void set_name(string&& name)
 		{
 			_name=std::move(name);
+			map<int ,string> m;
+			m[0]="R U OK?";
+			m[1]="I'm very happy";
+			m[2]="Thank U";
+			ss->test_map(m);
 		}
 	} _cat;
 	void say_hello(simple s)
@@ -81,14 +86,17 @@ class session:public interface_remote_function
 	}
 
 SIGNALS
-	remote_function<void(std::string*)> send_name;
+	remote_signal<void(string*)> send_name;
+	remote_signal<void(map<int,string>&)> test_map;
 public:
 	session(tcp::socket&& sock):_sock(std::move(sock))
 	{
+		_cat.ss=this;
 		_slots.bind(0,RS_WRAP(&session::say_hello),this);
 		_slots.bind(1,RS_WRAP(&cat::set_name),&_cat);
 		_slots.bind(2,RS_WRAP(&cat::eat),&_cat);
 		send_name.config(this,1);
+		test_map.config(this,2);
 		_sock.async_read_some(mutable_buffer(buffer,sizeof(uint32_t)),std::bind(&session::on_recv,this,_1,_2,true));
 	}
 };
@@ -125,8 +133,6 @@ int main(int argc,char* argv[])
 {
 	if(argc>=2)
 		setlocale(LC_ALL,argv[1]);
-	else
-		setlocale(LC_ALL,"zh_CN.UTF-8");
 
 	server_demo server(8998);
 	server.run();
